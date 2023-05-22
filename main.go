@@ -5,16 +5,12 @@ import (
 	"log"
 	"net"
 	"os"
-	"github.com/oschwald/geoip2-golang"
-	"github.com/ipinfo/mmdbctl"
-    "net/http"
-    "io/ioutil"
-    "encoding/json"	
+	"github.com/oschwald/maxminddb-golang"
 )
 
 
 func main() {
-	db, err := mmdbctl.Open("Country.mmdb")
+	db, err := maxminddb.Open("Country.mmdb")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,36 +24,10 @@ func main() {
     }
 
 	ip := net.ParseIP(ipAddress)
-	record, err := db.City(ip)
 
-	if err != nil {
+	record := make(map[string]string)
+	if err := db.Lookup(ip, &record); err != nil || len(record) == 0 {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s %s\n", ip, record.Country.IsoCode)
-}
-
-type IpInfo struct {
-    Country string `json:"country"`
-}
-
-func ip_info(ip string) string {
-    url := "https://ipinfo.io/"+ip+"?token=xxxxx"
-    resp, err := http.Get(url)
-    if err != nil {
-        fmt.Println(err)
-        return ""
-    }
-    defer resp.Body.Close()
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-        fmt.Println(err)
-        return ""
-    }
-    var ipInfo IpInfo
-    err = json.Unmarshal(body, &ipInfo)
-    if err != nil {
-        fmt.Println(err)
-        return ""
-    }
-    return ipInfo.Country
+	fmt.Printf("%s %s\n", ip, record["country"])
 }
